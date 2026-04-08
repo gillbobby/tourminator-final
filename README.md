@@ -1,8 +1,7 @@
 # The Tourminator
 
-## What Is This
-
-The Tourminator is my computer engineering capstone project. It is an autonomous indoor mapping and virtual tour robot built on a Raspberry Pi 4, running ROS Noetic. The robot drives itself around an indoor space, builds a map of the environment using SLAM, navigates autonomously to photo waypoints it calculates on its own, and captures 360 degree photos at each one. The end goal is a robot that can walk into a building, map it, and produce everything needed for a virtual tour without any human intervention after the initial launch.
+The Tourminator is my computer engineering capstone project. It is an autonomous virtual tour generating robot built on a Raspberry Pi 4 running ROS Noetic on Ubuntu 20.04. The robot drives itself around an indoor space, builds a map of the environment using SLAM, navigates autonomously to photo waypoints it calculates on its own, and captures 360 degree photos at each one. These photos are then sent to our web server which creates a waypoint-based 360 degree tour without any human intervention after the initial launch.
+This repo holds the code for the physical robot. 
 
 You can watch the final demo here: https://www.youtube.com/watch?v=s-Hn-MnkyMg
 
