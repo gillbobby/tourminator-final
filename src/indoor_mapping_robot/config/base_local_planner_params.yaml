@@ -1,0 +1,40 @@
+# DWA (Dynamic Window Approach) Planner - ALTERNATIVE ROBUST PLANNER
+
+  # Robot Configuration 
+max_vel_x: 0.3              
+min_vel_x: 0.0               
+max_vel_theta: 0.9            
+min_vel_theta: 0.1         
+  
+  # Acceleration limits 
+acc_lim_x: 0.5          
+acc_lim_theta: 1.5         
+acc_lim_trans: 0.5
+
+min_vel_trans: 0.0
+trans_stopped_vel: 0.02
+
+  # Goal tolerance 
+xy_goal_tolerance: 0.30       
+yaw_goal_tolerance: 0.5      
+latch_xy_goal_tolerance: true
+  
+  # Forward simulation 
+sim_time: 1.5             
+sim_granularity: 0.03         
+vx_samples: 15                
+vtheta_samples: 60           
+  
+  # Trajectory scoring 
+path_distance_bias: 16.0      
+goal_distance_bias: 8.0      
+occdist_scale: 5.5                  
+forward_point_distance: 0.25  
+stop_time_buffer: 0.55      
+scaling_speed: 0.25           
+max_scaling_factor: 0.2   
+  
+  # Oscillation prevention
+oscillation_reset_dist: 0.3   
+  
+holonomic_robot: false

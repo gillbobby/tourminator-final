@@ -1,0 +1,227 @@
+<!-- Navigation Launch File - PHASE 2 PRODUCTION VERSION
+     
+     MAJOR FIXES IMPLEMENTED:
+     1. Conservative gmapping parameters for map stability
+     2. Removed explore_lite (manual control first, then autonomous)
+     3. Proper recovery behaviors configured
+     4. Conservative move_base parameters
+     5. Robust TF and frame handling
+     
+     USAGE:
+     - For manual mapping: roslaunch indoor_mapping_robot navigation.launch enable_exploration:=false
+     - For autonomous (after manual works): roslaunch indoor_mapping_robot navigation.launch enable_exploration:=true
+-->
+
+<launch>
+  <!-- Arguments -->
+  <arg name="scan_in" default="/scan" />
+  <arg name="scan_out" default="/scan_filtered"/>
+  <arg name="odom_topic" default="/odom" />
+  <arg name="cmd_vel_topic" default="/cmd_vel_nav" />
+  <arg name="use_amcl" default="false" />
+  <arg name="enable_debug_tools" default="true" />
+  <arg name="enable_exploration" default="false" />  <!-- NEW: Control autonomous exploration -->
+  <arg name="map_frame" default="map" />
+  <arg name="odom_frame" default="odom" />
+  <arg name="base_frame" default="base_link" />
+
+<!-- 360→filtered scan -->
+<node pkg="laser_filters" type="scan_to_scan_filter_chain"
+      name="scan_filters" output="screen">
+  <rosparam command="load" file="$(find indoor_mapping_robot)/config/lidar_filter.yaml"/>
+  <remap from="scan"         to="$(arg scan_in)"/>           <!-- input from driver -->
+  <remap from="scan_filtered" to="$(arg scan_out)"/> <!-- output -->
+</node>
+
+
+  <!-- SLAM: gmapping with CONSERVATIVE parameters for stability -->
+  <node pkg="gmapping" 
+        type="slam_gmapping" 
+        name="slam_gmapping"
+        output="screen">
+    
+    <!-- Input topics from hardware bridges -->
+    <remap from="scan" to="$(arg scan_out)" />
+    <remap from="odom" to="$(arg odom_topic)" />
+    
+    <param name="map_update_interval" value="1"/>        
+    <param name="temporalUpdate" value="1.0"/>            
+    <param name="linearUpdate" value="0.05"/>             
+    <param name="angularUpdate" value="0.05"/>             
+    
+    <!-- Sensor parameters - TUNED FOR RPLidar A1 reliability -->
+    <param name="maxUrange" value="7.0"/>                  <!-- Conservative useful range -->
+    <param name="maxRange" value="10.0"/>                   <!-- Max LiDAR range -->
+    <param name="sigma" value="0.05"/>                     <!-- Laser noise -->
+    <param name="kernelSize" value="1"/>                   <!-- Convolution kernel -->
+    <param name="lstep" value="0.05"/>                     <!-- Linear step size -->
+    <param name="astep" value="0.05"/>                     <!-- Angular step size -->
+    <param name="iterations" value="5"/>                  <!-- MORE iterations for stability (was 4) -->
+    <param name="lsigma" value="0.075"/>                   <!-- Laser sigma -->
+    <param name="ogain" value="3.0"/>                      <!-- Occupancy gain -->
+    <param name="lskip" value="0"/>                        <!-- Laser skip -->
+    <param name="minimumScore" value="25"/>                <!-- HIGHER threshold for reliable matches (was 30) -->
+    
+    <!-- Motion model parameters - TUNED FOR YOUR ROBOT -->
+    <param name="srr" value="0.05"/>                       <!-- Rotation noise from rotation -->
+    <param name="srt" value="0.10"/>                       <!-- Rotation noise from translation -->
+    <param name="str" value="0.05"/>                       <!-- Translation noise from rotation -->
+    <param name="stt" value="0.10"/>                       <!-- Translation noise from translation -->
+    
+    <!-- Particle filter - MORE CONSERVATIVE for stability -->
+    <param name="resampleThreshold" value="0.5"/>         
+    <param name="particles" value="80"/>                 
+    
+    <!-- Frame parameters -->
+    <param name="odom_frame" value="$(arg odom_frame)"/>
+    <param name="base_frame" value="$(arg base_frame)"/>
+    <param name="map_frame" value="$(arg map_frame)"/>
+    
+    <!-- Map size and resolution - CONSERVATIVE -->
+    <param name="xmin" value="-10.0"/>                     <!-- Reasonable initial area -->
+    <param name="ymin" value="-10.0"/>
+    <param name="xmax" value="10.0"/>
+    <param name="ymax" value="10.0"/>
+    <param name="delta" value="0.05"/>                     <!-- 5cm resolution -->
+    
+    <!-- Transform publishing -->
+    <param name="transform_publish_period" value="0.05"/>   <!-- Publish TF at 10Hz -->
+  </node>
+
+  <!-- Navigation: move_base for path planning and execution -->
+  <node pkg="move_base" 
+        type="move_base" 
+        name="move_base"
+        output="screen">
+    
+    <!-- CRITICAL SAFETY INTEGRATION -->
+    <remap from="cmd_vel" to="$(arg cmd_vel_topic)" />
+  
+    <remap from="odom" to="$(arg odom_topic)" />
+    
+    <!-- Load navigation parameter files -->
+    <rosparam file="$(find indoor_mapping_robot)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find indoor_mapping_robot)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find indoor_mapping_robot)/config/local_costmap_params.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find indoor_mapping_robot)/config/global_costmap_params.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find indoor_mapping_robot)/config/base_local_planner_params.yaml" command="load" ns="DWAPlannerROS" />
+    <rosparam file="$(find indoor_mapping_robot)/config/global_planner_params.yaml" command="load" />
+    <rosparam file="$(find indoor_mapping_robot)/config/move_base_params.yaml" command="load" />
+    <!-- <rosparam file="$(find indoor_mapping_robot)/config/stepback_and_steerturn.yaml" command="load" />           Clear radius -->
+
+  </node>
+  <!-- auto-clear costmaps once at startup -->
+<node pkg="rosservice"
+      type="rosservice"
+      name="startup_costmap_clear"
+      args="call /move_base/clear_costmaps"
+      launch-prefix="bash -c 'sleep 2; $0 $@' " />
+  
+
+  <!-- Autonomous Exploration: explore_lite - ONLY when explicitly enabled -->
+  <group if="$(arg enable_exploration)">
+    <node pkg="explore_lite" 
+          type="explore" 
+          name="explore"
+          output="screen">
+      
+      <remap from="cmd_vel" to="/cmd_vel_nav" />
+      
+      <!-- Frame configuration -->
+      <param name="robot_base_frame" value="$(arg base_frame)"/>
+      <param name="costmap_topic" value="map"/>
+      <param name="costmap_updates_topic" value="map_updates"/> 
+
+      <!-- NEW - uses move_base's inflated costmap -->
+      <!--param name="costmap_topic" value="/move_base/global_costmap/costmap"/>
+      <param name="costmap_updates_topic" value="/move_base/global_costmap/costmap_updates/-->
+      
+      <!-- CONSERVATIVE exploration parameters -->
+      <param name="visualize" value="true"/>
+      <param name="planner_frequency" value="0.5"/>        
+      <param name="progress_timeout" value="20.0"/>      
+      <param name="potential_scale" value="10.0"/> <!-- distance preference -->
+      <param name="orientation_scale" value="0.0"/>
+      <param name="gain_scale" value="1.0"/>  <!-- size preference -->
+      <param name="min_frontier_size" value="0.75"/>         
+      <param name="explore_debug" value="true"/> 
+      
+      <!-- Real robot specific parameters -->
+      <param name="transform_tolerance" value="0.5"/>      
+      <param name="explore_clear_space" value="true"/>
+
+      
+    </node>
+  </group>
+
+  <!-- Debug and Monitoring Tools -->
+  <group if="$(arg enable_debug_tools)">
+    <node pkg="map_server" 
+          type="map_saver" 
+          name="periodic_map_saver"
+          args="-f /tmp/robot_map_latest --occ 65 --free 25"
+          output="screen" 
+          launch-prefix="bash -c 'while true; do sleep 30; $0 $@; done' "
+          if="$(eval optenv('AUTO_SAVE_MAP', 'false') == 'true')" />
+    
+    <!-- TF debugging -->
+    <node pkg="tf2_ros" 
+          type="tf2_echo" 
+          name="tf_debug_map_base"
+          args="map base_link"
+          output="screen"
+          if="$(eval optenv('DEBUG_TF', 'false') == 'true')" />
+    
+    <!-- Topic frequency monitoring -->
+    <node pkg="rostopic"
+          type="rostopic"
+          name="scan_frequency_monitor"
+          args="hz /scan"
+          output="screen"
+          if="$(eval optenv('MONITOR_TOPICS', 'false') == 'true')" />
+  </group>
+
+  <!-- Manual Control Alternative - FOR TESTING -->
+  <group unless="$(arg enable_exploration)">
+    
+    <!-- Teleop keyboard for manual control during SLAM verification -->
+    <node pkg="teleop_twist_keyboard" 
+          type="teleop_twist_keyboard.py" 
+          name="teleop_keyboard"
+          output="screen"
+          launch-prefix="xterm -title 'Manual Control (Enable for Testing)' -e"
+          if="$(eval optenv('ENABLE_MANUAL_CONTROL', 'false') == 'true')">
+      <remap from="cmd_vel" to="/cmd_vel_nav" />
+    </node>
+    
+    <!-- Info message when exploration is disabled -->
+    <node pkg="rostopic"
+          type="rostopic"
+          name="manual_mode_info"
+          args="pub /navigation_status std_msgs/String 'data: MANUAL_MAPPING_MODE - Set enable_exploration:=true for autonomous navigation' -r 0.1"
+          output="screen" />
+  </group>
+
+  <!-- Performance monitoring -->
+  <group if="$(arg enable_debug_tools)">
+    <!-- System resource monitor -->
+    <node pkg="rostopic"
+          type="rostopic"
+          name="system_monitor"
+          args="echo /rosout -n 1"
+          output="screen"
+          launch-prefix="bash -c 'echo Navigation Stack Started - Monitor performance with: rostopic hz /scan /odom /map; $0 $@' " />
+  </group>
+
+  <node pkg="robot_localization"
+        type="ekf_localization_node"
+        name="ekf_localization"
+        clear_params="true"
+        output="screen">
+
+    <rosparam command="load" file="$(find indoor_mapping_robot)/config/robot_localization.yaml" />
+
+  </node>
+
+
+</launch>

@@ -1,0 +1,36 @@
+# Global costmap parameters for global path planning
+# FIXED: Flat structure for proper namespace loading
+
+# Frame configuration - SLAM INTEGRATION
+global_frame: map                     # Global costmap uses map frame (from SLAM)
+robot_base_frame: base_link           # Robot base frame
+transform_tolerance: 0.5
+
+# Update rates - CONSERVATIVE FOR REAL HARDWARE
+update_frequency: 5.0                 # Hz - how often to update global costmap
+publish_frequency: 2.0                # Hz - how often to publish (reduced for performance)
+
+# Map behavior - STATIC MAP FROM SLAM
+static_map: true                      # Use static map from SLAM
+rolling_window: false  
+track_unknown_space: true
+               # Fixed global map (not rolling)
+
+plugins:
+  - {name: static_layer,        type: "costmap_2d::StaticLayer"} 
+  - {name: inflation_layer,     type: "costmap_2d::InflationLayer"}
+
+static_layer:
+  enabled: true
+  map_topic: /map                       # Topic from SLAM (gmapping)
+  first_map_only: false                 # Update when new map received
+  subscribe_to_updates: true            # Listen for map updates
+  use_maximum: false                    # Don't use maximum of static and other layers
+  lethal_cost_threshold: 75            # Threshold for lethal static obstacles
+  unknown_cost_value: 255      
+
+# Inflation layer configuration - CRITICAL FOR ROBOT SAFETY
+inflation_layer:
+  enabled: true
+  cost_scaling_factor: 0.8            # How quickly cost decreases with distance
+  inflation_radius: 0.45      #big radius for testing          # Distance to inflate obstacles (meters)

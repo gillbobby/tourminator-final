@@ -1,0 +1,261 @@
+<!-- Indoor Mapper Launch File - HARDWARE-INTEGRATED VERSION
+     
+     This launches the indoor_mapper node with full hardware integration
+     
+     FEATURES:
+     - Complete integration with working hardware components
+     - Safety-first command routing through safety_supervisor
+     - Enhanced monitoring and status reporting
+     - Real robot parameter optimization
+     - Comprehensive error handling
+     
+     PREREQUISITES: 
+     1. Hardware systems running (hardware.launch)
+     2. Navigation stack running (navigation.launch)
+     3. Safety supervisor active
+     
+     OR use the all-in-one: roslaunch hardware_interface full_robot.launch
+-->
+
+<launch>
+  
+  <!-- Load Robot Parameters -->
+  <rosparam file="$(find indoor_mapping_robot)/config/robot_params.yaml" command="load" />
+
+  <!-- Indoor Mapper Arguments -->
+  <arg name="exploration_timeout" default="600.0" />       <!-- 5 minutes for real demo -->
+  <arg name="photo_spacing" default="2.5" />               <!-- Distance between photos -->
+  <arg name="coverage_threshold" default="0.65" />         <!-- 65% coverage threshold -->
+  <arg name="enable_photo_rotation" default="true" />      <!-- Enable 360° photo rotation -->
+  <arg name="enable_debug" default="true" />               <!-- Enable debug monitoring -->
+
+  <!-- Indoor Mapper - Main autonomous exploration coordinator -->
+  <node pkg="indoor_mapping_robot" 
+        type="indoor_mapper.py" 
+        name="indoor_mapper" 
+        output="screen"
+        launch-prefix="bash -c 'sleep 10; $0 $@' ">
+    
+    <!-- CRITICAL SAFETY INTEGRATION: All movement through safety_supervisor -->
+    <remap from="cmd_vel" to="/cmd_vel_nav" />
+    
+    <!-- Exploration parameters (optimized for real robot) -->
+    <param name="exploration_timeout" value="$(arg exploration_timeout)" />
+    <param name="map_complete_threshold" value="$(arg coverage_threshold)" />
+    <param name="min_frontier_threshold" value="3" />         <!-- Minimum frontiers for completion -->
+    <param name="no_progress_timeout" value="300.0" />         <!-- No movement timeout -->
+    <param name="stable_map_time" value="20.0" />             <!-- Map stability time -->
+    
+    <!-- Photography parameters -->
+    <param name="photo_spacing" value="$(arg photo_spacing)" />
+    <param name="min_room_size" value="1.0" />                <!-- Minimum room size for photos -->
+    <param name="enable_photo_rotation" value="$(arg enable_photo_rotation)" />
+    <param name="photo_timeout" value="60.0" />               <!-- Timeout for reaching photo waypoints -->
+    
+    <!-- Safety and recovery parameters -->
+    <param name="stuck_detection_time" value="25.0" />        <!-- Stuck detection timeout -->
+    <param name="recovery_attempts_max" value="10" />          <!-- Maximum recovery attempts -->
+    <param name="system_ready_timeout" value="30.0" />        <!-- System initialization timeout -->
+    <param name="min_movement_distance" value="0.4" />        <!-- Minimum meaningful movement -->
+    
+    <!-- Hardware integration settings -->
+    <param name="use_real_hardware" value="true" />           <!-- Enable real hardware mode -->
+    <param name="camera_trigger_topic" value="/camera/capture_trigger" />
+    <param name="manual_trigger_topic" value="/trigger_photo_mode" />
+    
+    <!-- Robot physical parameters (from robot_params.yaml) -->
+    <param name="robot_radius" value="0.54" />                <!-- Robot radius for navigation -->
+    <param name="max_linear_vel" value="0.3" />               <!-- Conservative max speed -->
+    <param name="max_angular_vel" value="0.5" />              <!-- Conservative turn rate -->
+    
+    <!-- System monitoring parameters -->
+    <param name="safety_status_topic" value="/safety_status" />
+    <param name="emergency_stop_topic" value="/emergency_stop" />
+    <param name="camera_status_topic" value="/camera/photo_status" />
+    <param name="respect_safety_overrides" value="true" />    <!-- Pause during emergencies -->
+  </node>
+
+  <!-- Debug and Monitoring Tools -->
+  <group if="$(arg enable_debug)">
+    
+    <!-- Enhanced Status Monitor - Real-time system monitoring -->
+    <node pkg="indoor_mapping_robot" 
+          type="mapper_status_monitor.py" 
+          name="mapper_status_monitor" 
+          output="screen"
+          if="$(eval optenv('MAPPER_STATUS_MONITOR_AVAILABLE', 'false') == 'true')">
+      
+      <!-- Monitor all key topics -->
+      <param name="monitor_topics" value="/mapper_state,/mapper_status,/safety_status,/camera/photo_status" />
+      <param name="update_rate" value="5.0" />
+      <param name="show_safety_status" value="true" />
+      <param name="show_camera_status" value="true" />
+      <param name="log_events" value="true" />
+    </node>
+    
+    <!-- Real-time Terminal Display 
+    <node pkg="indoor_mapping_robot" 
+          type="debug_terminal_display.py" 
+          name="debug_terminal_display" 
+          output="screen"
+          if="$(eval optenv('ENABLE_TERMINAL_DISPLAY', 'true') == 'true')">
+      
+      Display configuration
+      <param name="show_coverage_progress" value="true" />
+      <param name="show_safety_status" value="true" />
+      <param name="show_photo_count" value="true" />
+      <param name="show_system_health" value="true" />
+      <param name="update_frequency" value="2.0" />
+      <param name="clear_screen" value="true" />
+    </node> -->
+    
+    <!-- Coverage Progress Monitor -->
+    <node pkg="indoor_mapping_robot" 
+          type="coverage_monitor.py" 
+          name="coverage_monitor" 
+          output="screen"
+          if="$(eval optenv('ENABLE_COVERAGE_MONITOR', 'false') == 'true')">
+      
+      <!-- Coverage tracking -->
+      <param name="target_coverage" value="$(arg coverage_threshold)" />
+      <param name="update_rate" value="1.0" />
+      <param name="publish_progress" value="true" />
+      <param name="log_milestones" value="true" />
+    </node>
+  </group>
+
+  <!-- Automatic Map Saving -->
+  <node pkg="map_server" 
+        type="map_saver" 
+        name="auto_map_saver"
+        args="-f /tmp/robot_map_latest --occ 65 --free 25"
+        output="screen" />
+
+  <!-- Photo Directory Monitor -->
+  <node pkg="indoor_mapping_robot"
+        type="photo_monitor.py"
+        name="photo_monitor"
+        output="screen"
+        if="$(eval optenv('ENABLE_PHOTO_MONITOR', 'false') == 'true')">
+    
+    <!-- Monitor photo capture -->
+    <param name="photo_directory" value="/tmp/robot_photos" />
+    <param name="monitor_frequency" value="1.0" />
+    <param name="report_new_photos" value="true" />
+    <param name="count_total_photos" value="true" />
+  </node>
+
+  <!-- Mission Timer and Progress Tracking -->
+  <node pkg="indoor_mapping_robot"
+        type="mission_timer.py"
+        name="mission_timer"
+        output="screen"
+        if="$(eval optenv('ENABLE_MISSION_TIMER', 'false') == 'true')">
+    
+    <!-- Timer configuration -->
+    <param name="mission_timeout" value="$(arg exploration_timeout)" />
+    <param name="warn_at_percentage" value="80.0" />          <!-- Warn at 80% time elapsed -->
+    <param name="publish_time_remaining" value="true" />
+    <param name="update_frequency" value="8.0" />            <!-- Every 10 seconds -->
+  </node>
+
+  <!-- Emergency Controls -->
+  <group if="$(eval optenv('ENABLE_EMERGENCY_CONTROLS', 'false') == 'true')">
+    
+    <!-- Manual Photo Trigger -->
+    <node pkg="indoor_mapping_robot"
+          type="manual_photo_trigger.py"
+          name="manual_photo_trigger"
+          output="screen">
+      
+      <!-- Manual trigger configuration -->
+      <param name="trigger_topic" value="/trigger_photo_mode" />
+      <param name="camera_trigger_topic" value="/camera/capture_trigger" />
+      <param name="require_confirmation" value="true" />
+    </node>
+    
+    <!-- Emergency Mission Abort -->
+    <node pkg="indoor_mapping_robot"
+          type="mission_abort.py"
+          name="mission_abort"
+          output="screen">
+      
+      <!-- Abort configuration -->
+      <param name="abort_topic" value="/abort_mission" />
+      <param name="stop_all_navigation" value="true" />
+      <param name="return_to_start" value="true" />
+    </node>
+  </group>
+
+  <!-- Data Collection and Logging -->
+  <group if="$(eval optenv('ENABLE_DATA_LOGGING', 'false') == 'true')">
+    
+    <!-- Mission Data Logger -->
+    <node pkg="rosbag"
+          type="record"
+          name="mission_data_logger"
+          args="-o /tmp/mission_$(eval int(time.time())) /mapper_state /mapper_status /map_coverage /safety_status /camera/photo_status /odom /scan"
+          output="screen" />
+    
+    <!-- Performance Metrics Logger -->
+    <node pkg="indoor_mapping_robot"
+          type="performance_logger.py"
+          name="performance_logger"
+          output="screen">
+      
+      <!-- Logging configuration -->
+      <param name="log_file" value="/tmp/mission_performance.log" />
+      <param name="log_frequency" value="5.0" />
+      <param name="track_coverage_rate" value="true" />
+      <param name="track_movement_efficiency" value="true" />
+      <param name="track_photo_success_rate" value="true" />
+    </node>
+  </group>
+
+  <!-- System Health Monitoring -->
+  <node pkg="diagnostic_aggregator" 
+        type="aggregator_node" 
+        name="mapper_diagnostics" 
+        output="screen"
+        if="$(eval optenv('ENABLE_MAPPER_DIAGNOSTICS', 'false') == 'true')">
+    <rosparam>
+      pub_rate: 1.0
+      base_path: 'indoor_mapper'
+      analyzers:
+        exploration:
+          type: diagnostic_aggregator/GenericAnalyzer
+          path: Exploration
+          contains: ['indoor_mapper', 'explore']
+        safety:
+          type: diagnostic_aggregator/GenericAnalyzer
+          path: Safety
+          contains: ['safety_supervisor', 'emergency_stop']
+        hardware:
+          type: diagnostic_aggregator/GenericAnalyzer
+          path: Hardware
+          contains: ['camera_bridge', 'motor_bridge', 'lidar_bridge']
+    </rosparam>
+  </node>
+
+  <!-- Web Interface (if available) -->
+  <group if="$(eval optenv('ENABLE_WEB_INTERFACE', 'false') == 'true')">
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
+      <arg name="port" value="9090"/>
+    </include>
+    
+    <!-- Web dashboard for mission monitoring -->
+    <node pkg="indoor_mapping_robot"
+          type="web_dashboard.py"
+          name="web_dashboard"
+          output="screen">
+      
+      <!-- Dashboard configuration -->
+      <param name="port" value="8080" />
+      <param name="update_rate" value="2.0" />
+      <param name="show_map" value="true" />
+      <param name="show_robot_path" value="true" />
+      <param name="show_photo_locations" value="true" />
+    </node>
+  </group>
+
+</launch>

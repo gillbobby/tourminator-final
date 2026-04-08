@@ -1,0 +1,122 @@
+# Robot Physical Parameters - VERIFIED FROM HARDWARE INTEGRATION
+# UPDATED: Optimized for working hardware system with safety supervisor
+
+# Robot dimensions (in meters) - FROM VERIFIED DESIGN SPECS
+robot_width: 0.28575        
+robot_length: 0.32385      
+robot_height: 0.46196   
+
+# Wheel configuration - VERIFIED FROM HARDWARE TESTS
+wheel_diameter: 0.144    
+wheelbase: 0.2413        
+wheel_radius: 0.072      
+
+# Performance limits - CONSERVATIVE FOR REAL HARDWARE SAFETY
+max_linear_velocity: 0.3      # m/s - tested safe speed for real robot
+max_angular_velocity: 0.5     # rad/s - tested safe turning speed
+max_linear_acceleration: 0.2  # m/s^2 - gentle acceleration for safety
+max_angular_acceleration: 0.3 # rad/s^2 - gentle turning acceleration
+
+# Minimum velocities (to overcome motor friction/deadband)
+min_linear_velocity: -0.4     # m/s - minimum speed for actual movement
+min_angular_velocity: 0.2     # rad/s - minimum turning speed
+
+# Sensor frame IDs (for TF transforms) - VERIFIED WORKING
+base_frame: "base_link"       # Robot base coordinate frame
+odom_frame: "odom"            # Odometry coordinate frame (from motor_bridge)
+map_frame: "map"              # Global map coordinate frame (from SLAM)
+lidar_frame: "lidar_link"     # LiDAR sensor frame
+camera_frame: "camera_link"   # Camera frame
+
+# Sensor mounting positions (relative to base_link) - VERIFIED FROM HARDWARE
+# LiDAR position (verified from successful hardware tests)
+lidar_x_offset: 0.11           # meters forward from robot center
+lidar_y_offset: 0.0           # meters left from robot center  
+lidar_z_offset: 0.0        # meters up from robot base (verified working)
+
+# Camera position (verified from design - cameras on 4ft pole)
+camera_x_offset: 0.0          # meters forward from robot center
+camera_y_offset: 0.0          # meters left from robot center
+camera_z_offset: 1.219        # meters up from robot base (4 feet verified)
+
+# Motor specifications - FROM VERIFIED HARDWARE
+motor_left_pin1: 17           # GPIO pin for left motor direction 1
+motor_left_pin2: 18           # GPIO pin for left motor direction 2
+motor_right_pin1: 22          # GPIO pin for right motor direction 1
+motor_right_pin2: 23          # GPIO pin for right motor direction 2
+
+# Motor performance parameters - FROM GOBILDA 5202 SPECS
+motor_nominal_voltage: 12.0   # Volts
+motor_max_rpm: 60            # RPM at nominal voltage
+motor_stall_torque: 133.2    # kg-cm
+motor_stall_current: 9.2     # Amperes
+
+# Power system parameters - FROM VERIFIED HARDWARE
+motor_battery_voltage: 12.8   # LiFePO4 battery voltage
+motor_battery_capacity: 10.0  # Amp-hours
+pi_battery_voltage: 5.0       # USB power bank voltage
+estimated_runtime: 120.0     # minutes (2 hours target)
+
+# Camera system parameters - FROM WORKING HARDWARE
+camera_devices: ["/dev/video0", "/dev/video2"]  # Verified working devices
+camera_resolution_width: 1920    # pixels
+camera_resolution_height: 1080   # pixels
+camera_frame_rate: 30            # fps
+camera_jpeg_quality: 85          # compression quality
+
+# LiDAR parameters - FROM WORKING RPLIDAR INTEGRATION
+lidar_port: "/dev/ttyUSB0"       # Verified working port
+lidar_baudrate: 115200           # RPLidar A1 standard baudrate
+lidar_frame_id: "lidar_link"     # Frame ID for scan data
+lidar_scan_frequency: 15.0       # Hz - tested stable frequency
+lidar_range_min: 0.15            # meters - minimum detection range
+lidar_range_max: 8.0             # meters - maximum detection range
+
+# Safety supervisor parameters - INTEGRATED WITH WORKING SYSTEM
+safety_emergency_distance: 0.2   # meters - hard emergency stop distance
+safety_critical_distance: 0.6    # meters - heavy braking distance  
+safety_warning_distance: 1.0     # meters - speed reduction distance
+safety_caution_distance: 1.5     # meters - awareness distance
+
+# Safety supervisor control parameters
+safety_max_linear_accel: 0.2     # m/s^2 - maximum braking acceleration
+safety_max_angular_accel: 0.2    # rad/s^2 - maximum turning acceleration
+safety_command_timeout: 0.5      # seconds - command timeout
+
+# Indoor mapper parameters - OPTIMIZED FOR REAL MISSIONS
+exploration_timeout: 300.0       # seconds (5 minutes for real demo)
+photo_spacing: 2.5               # meters between photo waypoints
+coverage_threshold: 0.65          # 65% coverage before transitioning to photos
+min_frontier_threshold: 3         # minimum frontiers to continue exploration
+stuck_detection_time: 25.0       # seconds before declaring robot stuck
+
+# System integration parameters - FOR HARDWARE COORDINATION
+hardware_startup_delay: 10.0     # seconds to wait for hardware initialization
+system_health_check_rate: 1.0    # Hz - frequency of health monitoring
+status_publish_rate: 5.0         # Hz - frequency of status updates
+debug_publish_rate: 2.0          # Hz - frequency of debug information
+
+# File system parameters - FOR DATA MANAGEMENT
+photo_directory: "/tmp/robot_photos"     # where photos are saved
+map_save_directory: "/tmp/robot_maps"    # where maps are saved
+log_directory: "/tmp/robot_logs"         # where logs are saved
+auto_save_maps: true                     # automatically save maps
+auto_save_photos: true                   # automatically save photo metadata
+
+# Network parameters - FOR DATA UPLOAD (if implemented)
+upload_server_url: "http://localhost:8000"  # server for photo upload
+upload_timeout: 30.0                        # seconds timeout for uploads
+retry_failed_uploads: true                   # retry failed uploads
+max_upload_retries: 3                       # maximum retry attempts
+
+# ROS topic names - STANDARDIZED FOR INTEGRATION
+topics:
+  cmd_vel_input: "/cmd_vel_nav"              # input to safety supervisor
+  cmd_vel_output: "/cmd_vel"                 # output from safety supervisor
+  safety_status: "/safety_status"            # safety supervisor status
+  emergency_stop: "/emergency_stop"          # emergency stop signal
+  camera_trigger: "/camera/capture_trigger"  # camera capture trigger
+  camera_status: "/camera/photo_status"      # camera system status
+  mapper_state: "/mapper_state"              # indoor mapper state
+  mapper_debug: "/mapper_debug"              # indoor mapper debug info
+  coverage: "/map_coverage"                  # map coverage percentage

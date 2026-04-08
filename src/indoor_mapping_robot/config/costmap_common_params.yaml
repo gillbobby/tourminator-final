@@ -1,0 +1,23 @@
+# Common costmap parameters for both local and global costmaps
+# OPTIMIZED FOR REAL HARDWARE - RPLidar + Safety Supervisor Integration
+
+#Map resolution and update rates - OPTIMIZED FOR REAL HARDWARE PERFORMANCE
+
+
+footprint: [
+  [ 0.159,  0.143],   # front-left
+  [ 0.159, -0.143],   # front-right
+  [-0.159, -0.143],   # rear-right
+  [-0.159,  0.143]    # rear-left
+]
+
+# Footprint parameters for dynamic footprint
+footprint_padding: 0.05                 # Padding around footprint (meters)
+
+# Alternative: use circular footprint (uncomment if preferred)
+#  robot_radius: 0.55
+
+
+# Publication parameters - OPTIMIZED FOR REAL ROBOT
+always_send_full_costmap: false        # Only send updates for efficiency
+publish_voxel_map: false               # Don't publish 3D voxel map (saves bandwidth)

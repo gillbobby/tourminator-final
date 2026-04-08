@@ -1,0 +1,19 @@
+scan_filter_chain:
+
+  # Drop self-hits/ground right at the robot
+  - name: drop_nearfield
+    type: laser_filters/LaserScanRangeFilter
+    params:
+      lower_threshold: 0.28     # >= (half robot width) + a bit; tune
+      upper_threshold: 7.0
+      lower_replacement_value: inf
+      upper_replacement_value: .inf
+
+
+  # Keep only the forward angular window (drop the rear)
+  - name: keep_front_sector
+    type: laser_filters/LaserScanAngularBoundsFilter
+    params:
+      lower_angle: -1.57        # -90 deg
+      upper_angle:  1.57        # +90 deg
+      lower_replacement_value: inf

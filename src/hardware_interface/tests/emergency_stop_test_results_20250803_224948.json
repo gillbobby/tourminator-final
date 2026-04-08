@@ -1,0 +1,182 @@
+{
+  "test_run": "2025-08-03T22:49:48.043712",
+  "total_tests": 29,
+  "passed": 28,
+  "failed": 1,
+  "results": [
+    {
+      "test": "Import rospy",
+      "passed": true,
+      "message": "ROS Python bindings",
+      "timestamp": "2025-08-03T22:49:06.032652"
+    },
+    {
+      "test": "Import std_msgs.msg",
+      "passed": true,
+      "message": "ROS standard messages",
+      "timestamp": "2025-08-03T22:49:06.032737"
+    },
+    {
+      "test": "Import geometry_msgs.msg",
+      "passed": true,
+      "message": "ROS geometry messages",
+      "timestamp": "2025-08-03T22:49:06.053390"
+    },
+    {
+      "test": "Import gpiozero",
+      "passed": true,
+      "message": "GPIO control library",
+      "timestamp": "2025-08-03T22:49:06.418738"
+    },
+    {
+      "test": "ROS_MASTER_URI set",
+      "passed": true,
+      "message": "URI: http://localhost:11311",
+      "timestamp": "2025-08-03T22:49:06.418871"
+    },
+    {
+      "test": "roscore available",
+      "passed": true,
+      "message": "Found at: /opt/ros/noetic/bin/roscore",
+      "timestamp": "2025-08-03T22:49:06.428261"
+    },
+    {
+      "test": "ROS workspace sourced",
+      "passed": true,
+      "message": "indoor_robot_ws found in path",
+      "timestamp": "2025-08-03T22:49:06.428385"
+    },
+    {
+      "test": "ROS master startup",
+      "passed": true,
+      "message": "roscore started successfully",
+      "timestamp": "2025-08-03T22:49:14.226339"
+    },
+    {
+      "test": "Emergency stop script exists",
+      "passed": true,
+      "message": "Found: /home/bikram/robot_project/indoor_robot_ws/src/hardware_interface/scripts/emergency_stop.py",
+      "timestamp": "2025-08-03T22:49:14.226816"
+    },
+    {
+      "test": "Emergency stop script readable",
+      "passed": true,
+      "message": "",
+      "timestamp": "2025-08-03T22:49:14.227000"
+    },
+    {
+      "test": "Emergency stop script executable",
+      "passed": true,
+      "message": "",
+      "timestamp": "2025-08-03T22:49:14.227171"
+    },
+    {
+      "test": "Emergency stop module import",
+      "passed": true,
+      "message": "Module imported successfully",
+      "timestamp": "2025-08-03T22:49:14.239565"
+    },
+    {
+      "test": "Emergency stop has EmergencyStop",
+      "passed": true,
+      "message": "",
+      "timestamp": "2025-08-03T22:49:14.239622"
+    },
+    {
+      "test": "Emergency stop has main",
+      "passed": true,
+      "message": "",
+      "timestamp": "2025-08-03T22:49:14.239656"
+    },
+    {
+      "test": "Emergency stop process running",
+      "passed": true,
+      "message": "Process started successfully",
+      "timestamp": "2025-08-03T22:49:19.250528"
+    },
+    {
+      "test": "Emergency stop ROS node",
+      "passed": true,
+      "message": "Node registered with ROS",
+      "timestamp": "2025-08-03T22:49:20.265839"
+    },
+    {
+      "test": "Topic exists: /emergency_stop_active",
+      "passed": true,
+      "message": "Emergency status topic",
+      "timestamp": "2025-08-03T22:49:21.634714"
+    },
+    {
+      "test": "Topic exists: /emergency_status",
+      "passed": true,
+      "message": "Emergency status messages",
+      "timestamp": "2025-08-03T22:49:21.634809"
+    },
+    {
+      "test": "Topic exists: /emergency_trigger",
+      "passed": true,
+      "message": "Emergency trigger topic",
+      "timestamp": "2025-08-03T22:49:21.634852"
+    },
+    {
+      "test": "Topic exists: /cmd_vel",
+      "passed": true,
+      "message": "Velocity command topic",
+      "timestamp": "2025-08-03T22:49:21.634894"
+    },
+    {
+      "test": "Service exists: /emergency_stop",
+      "passed": true,
+      "message": "Emergency stop service",
+      "timestamp": "2025-08-03T22:49:22.662354"
+    },
+    {
+      "test": "Service exists: /emergency_reset",
+      "passed": true,
+      "message": "Emergency reset service",
+      "timestamp": "2025-08-03T22:49:22.662448"
+    },
+    {
+      "test": "Emergency trigger topic publish",
+      "passed": true,
+      "message": "Topic command sent successfully",
+      "timestamp": "2025-08-03T22:49:27.696755"
+    },
+    {
+      "test": "Emergency status via emergency status topic",
+      "passed": true,
+      "message": "Emergency state detected",
+      "timestamp": "2025-08-03T22:49:31.853019"
+    },
+    {
+      "test": "Emergency stop service call",
+      "passed": true,
+      "message": "Service call successful",
+      "timestamp": "2025-08-03T22:49:33.560710"
+    },
+    {
+      "test": "Emergency reset service call",
+      "passed": true,
+      "message": "Service call successful",
+      "timestamp": "2025-08-03T22:49:37.286176"
+    },
+    {
+      "test": "cmd_vel blocking test",
+      "passed": false,
+      "message": "Command '['rostopic', 'pub', '/emergency_trigger', 'std_msgs/Bool', 'data: true', '--once']' timed out after 5 seconds",
+      "timestamp": "2025-08-03T22:49:42.302498"
+    },
+    {
+      "test": "GPIO emergency button",
+      "passed": true,
+      "message": "DISABLED by design (no hardware connected)",
+      "timestamp": "2025-08-03T22:49:42.302681"
+    },
+    {
+      "test": "Motor bridge script exists",
+      "passed": true,
+      "message": "Ready for integration testing",
+      "timestamp": "2025-08-03T22:49:42.303176"
+    }
+  ]
+}

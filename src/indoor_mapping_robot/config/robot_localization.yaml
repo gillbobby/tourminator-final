@@ -1,0 +1,52 @@
+frequency: 50
+two_d_mode: true
+odom0: /odom
+#odom0_config: [false, false, false,  # x, y, z position (ignore - no encoders)
+#             false, false, false,  # roll, pitch, yaw orientation (ignore)
+#             true,  true,  false,  # x_dot, y_dot, z_dot velocity (use rough estimate)
+#              false, false, false,  # roll_dot, pitch_dot, yaw_dot (ignore)
+#             false, false, false]  # x_ddot, y_ddot, z_ddot (ignore)
+
+odom0_config: [
+  true,  true,  false,   # x, y position -> YES, fuse them
+  false, false, false,   # yaw orientation from odom -> NO
+  true,  false, false,   # forward velocity (x_dot) -> YES, sideways vel (y_dot) -> NO
+  false, false, false,   # don't take yaw rate from wheels
+  false, false, false    # no accel
+]
+odom0_differential: false
+
+imu0: /imu
+imu0_config: [false, false, false,  # x, y, z position (IMU doesn't provide)
+              false, false, true,  # roll, pitch, yaw orientation (ignore - no magnetometer)
+              false, false, false,  # x_dot, y_dot, z_dot velocity (ignore)
+              false, false, true,   # roll_dot, pitch_dot, yaw_dot (USE YAW RATE - critical!)
+              false,  false,  false]   # x_ddot, y_ddot, z_ddot (use linear accel)
+imu0_differential: false
+imu0_remove_gravitational_acceleration: true
+
+# Output will be odom->base_link transform with IMU-corrected heading
+publish_tf: true
+publish_acceleration: false
+
+
+odom_frame: odom
+base_link_frame: base_link
+world_frame: odom
+
+# Trust IMU gyro more than fake wheel odometry for rotation
+process_noise_covariance: [0.05, 0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0.05, 0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0.06, 0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0.03, 0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0.03, 0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0.06, 0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0.025, 0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0.025, 0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0.04, 0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0.01, 0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0.01, 0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0.02, 0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0.01, 0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0.01, 0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0.015]

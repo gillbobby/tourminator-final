@@ -1,0 +1,464 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="indoor_mapping_robot">
+  
+  <!-- =====================================================
+       ROBOT PHYSICAL PARAMETERS - CORRECTED WITH YOUR MEASUREMENTS
+       Based on your actual hardware dimensions and test results
+       ===================================================== -->
+  
+  <!-- Base chassis dimensions - CORRECTED FROM YOUR MEASUREMENTS -->
+  <xacro:property name="base_width" value="0.50"/>      <!-- 50cm wide (25cm left + 25cm right) -->
+  <xacro:property name="base_length" value="0.40"/>     <!-- 34cm long (16cm back + 18cm front) -->
+  <xacro:property name="base_height" value="0.30"/>     <!-- 300mm high (estimated) -->
+  <xacro:property name="base_mass" value="15.0"/>       <!-- ~15kg total robot weight -->
+  
+  <!-- Wheel specifications (VERIFIED: POLOLU 144x29mm) -->
+  <xacro:property name="wheel_radius" value="0.072"/>   <!-- 144mm diameter / 2 = 72mm radius -->
+  <xacro:property name="wheel_width" value="0.029"/>    <!-- 29mm wide -->
+  <xacro:property name="wheel_mass" value="0.5"/>       <!-- ~500g per wheel -->
+  
+  <!-- Wheelbase and motor positioning (VERIFIED from motor tests) -->
+  <xacro:property name="wheelbase" value="0.50"/>       <!-- 50cm between wheels (25cm + 25cm) -->
+  <xacro:property name="wheel_offset_z" value="-0.05"/> <!-- Wheels slightly below base -->
+  
+  <!-- Camera pole (4 feet tall from project specs) -->
+  <xacro:property name="pole_height" value="1.219"/>    <!-- 4 feet = 1.219 meters -->
+  <xacro:property name="pole_radius" value="0.02"/>     <!-- 2cm radius painter's pole -->
+  
+  <!-- Sensor mounting positions - CORRECTED FROM YOUR MEASUREMENTS -->
+  <xacro:property name="lidar_x_offset" value="0.13"/>  <!-- 13cm forward from robot center -->
+  <xacro:property name="lidar_y_offset" value="0.0"/>   <!-- Centered horizontally -->
+  <xacro:property name="lidar_z_offset" value="0.15"/>  <!-- 15cm above base (estimated) -->
+  
+  <xacro:property name="camera_height" value="${pole_height}"/> <!-- Top of pole -->
+  
+  <!-- =====================================================
+       VISUAL MATERIALS
+       ===================================================== -->
+  
+  <material name="wood_brown">
+    <color rgba="0.6 0.4 0.2 1.0"/>
+  </material>
+  
+  <material name="metal_gray">
+    <color rgba="0.5 0.5 0.5 1.0"/>
+  </material>
+  
+  <material name="black_rubber">
+    <color rgba="0.1 0.1 0.1 1.0"/>
+  </material>
+  
+  <material name="blue_electronics">
+    <color rgba="0.0 0.0 1.0 1.0"/>
+  </material>
+  
+  <material name="red_lidar">
+    <color rgba="1.0 0.0 0.0 1.0"/>
+  </material>
+  
+  <!-- =====================================================
+       BASE LINK (Robot Main Body) - CORRECTED DIMENSIONS
+       ===================================================== -->
+  
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <!-- Use your actual robot dimensions -->
+        <box size="${base_length} ${base_width} ${base_height}"/>
+      </geometry>
+      <material name="wood_brown"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <!-- Slightly larger collision box for safety margin -->
+        <box size="${base_length + 0.02} ${base_width + 0.02} ${base_height}"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="${base_mass}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <!-- Moment of inertia for rectangular box -->
+      <inertia ixx="${base_mass/12 * (base_width*base_width + base_height*base_height)}" 
+               ixy="0" ixz="0"
+               iyy="${base_mass/12 * (base_length*base_length + base_height*base_height)}" 
+               iyz="0"
+               izz="${base_mass/12 * (base_length*base_length + base_width*base_width)}"/>
+    </inertial>
+  </link>
+  
+  <!-- =====================================================
+       WHEELS - VERIFIED CONFIGURATION
+       2 front driven wheels + 2 rear caster wheels
+       Motor configuration: gpiozero Motor(17,18) and Motor(22,23)
+       ===================================================== -->
+  
+  <!-- Front Left Wheel (Driven by Motor on pins 17,18) -->
+  <link name="front_left_wheel">
+    <visual>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <material name="black_rubber"/>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="${wheel_mass}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="${wheel_mass/12 * (3*wheel_radius*wheel_radius + wheel_width*wheel_width)}" 
+               ixy="0" ixz="0"
+               iyy="${wheel_mass/12 * (3*wheel_radius*wheel_radius + wheel_width*wheel_width)}" 
+               iyz="0"
+               izz="${wheel_mass/2 * wheel_radius*wheel_radius}"/>
+    </inertial>
+  </link>
+  
+  <joint name="front_left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_left_wheel"/>
+    <!-- Position: front of robot, left side -->
+    <origin xyz="${base_length/4} ${wheelbase/2} ${wheel_offset_z}" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>  <!-- Wheel rotates around Y axis -->
+  </joint>
+  
+  <!-- Front Right Wheel (Driven by Motor on pins 22,23) -->
+  <link name="front_right_wheel">
+    <visual>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <material name="black_rubber"/>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="${wheel_mass}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="${wheel_mass/12 * (3*wheel_radius*wheel_radius + wheel_width*wheel_width)}" 
+               ixy="0" ixz="0"
+               iyy="${wheel_mass/12 * (3*wheel_radius*wheel_radius + wheel_width*wheel_width)}" 
+               iyz="0"
+               izz="${wheel_mass/2 * wheel_radius*wheel_radius}"/>
+    </inertial>
+  </link>
+  
+  <joint name="front_right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_right_wheel"/>
+    <!-- Position: front of robot, right side -->
+    <origin xyz="${base_length/4} ${-wheelbase/2} ${wheel_offset_z}" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  
+  <!-- Rear Left Wheel (Passive Caster) -->
+  <link name="rear_left_wheel">
+    <visual>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <material name="black_rubber"/>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="${wheel_mass}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="${wheel_mass/12 * (3*wheel_radius*wheel_radius + wheel_width*wheel_width)}" 
+               ixy="0" ixz="0"
+               iyy="${wheel_mass/12 * (3*wheel_radius*wheel_radius + wheel_width*wheel_width)}" 
+               iyz="0"
+               izz="${wheel_mass/2 * wheel_radius*wheel_radius}"/>
+    </inertial>
+  </link>
+  
+  <joint name="rear_left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="rear_left_wheel"/>
+    <!-- Position: rear of robot, left side -->
+    <origin xyz="${-base_length/4} ${wheelbase/2} ${wheel_offset_z}" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  
+  <!-- Rear Right Wheel (Passive Caster) -->
+  <link name="rear_right_wheel">
+    <visual>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <material name="black_rubber"/>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="${wheel_mass}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="${wheel_mass/12 * (3*wheel_radius*wheel_radius + wheel_width*wheel_width)}" 
+               ixy="0" ixz="0"
+               iyy="${wheel_mass/12 * (3*wheel_radius*wheel_radius + wheel_width*wheel_width)}" 
+               iyz="0"
+               izz="${wheel_mass/2 * wheel_radius*wheel_radius}"/>
+    </inertial>
+  </link>
+  
+  <joint name="rear_right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="rear_right_wheel"/>
+    <!-- Position: rear of robot, right side -->
+    <origin xyz="${-base_length/4} ${-wheelbase/2} ${wheel_offset_z}" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  
+  <!-- =====================================================
+       CAMERA POLE
+       4-foot tall retractable painter's pole in center
+       ===================================================== -->
+  
+  <link name="camera_pole">
+    <visual>
+      <geometry>
+        <cylinder radius="${pole_radius}" length="${pole_height}"/>
+      </geometry>
+      <material name="metal_gray"/>
+      <origin xyz="0 0 ${pole_height/2}" rpy="0 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${pole_radius}" length="${pole_height}"/>
+      </geometry>
+      <origin xyz="0 0 ${pole_height/2}" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="2.0"/>  <!-- ~2kg for the pole -->
+      <origin xyz="0 0 ${pole_height/2}" rpy="0 0 0"/>
+      <inertia ixx="${2.0/12 * (3*pole_radius*pole_radius + pole_height*pole_height)}" 
+               ixy="0" ixz="0"
+               iyy="${2.0/12 * (3*pole_radius*pole_radius + pole_height*pole_height)}" 
+               iyz="0"
+               izz="${2.0/2 * pole_radius*pole_radius}"/>
+    </inertial>
+  </link>
+  
+  <joint name="base_to_pole" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_pole"/>
+    <!-- Mounted at center of base, extending upward -->
+    <origin xyz="0 0 ${base_height/2}" rpy="0 0 0"/>
+  </joint>
+  
+  <!-- =====================================================
+       LIDAR SENSOR (RPLidar A1M8) - CORRECTED POSITION
+       Mounted 13cm forward from robot center
+       Frame matches lidar_bridge.py frame_id
+       ===================================================== -->
+  
+  <link name="lidar_link">
+    <visual>
+      <geometry>
+        <!-- RPLidar A1 dimensions -->
+        <cylinder radius="0.035" length="0.06"/>
+      </geometry>
+      <material name="red_lidar"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.035" length="0.06"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>  <!-- ~500g for RPLidar A1M8 -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+  
+  <joint name="base_to_lidar" type="fixed">
+    <parent link="base_link"/>
+    <child link="lidar_link"/>
+    <!-- CORRECTED: 13cm forward from robot center, no vertical offset from base -->
+    <origin xyz="${lidar_x_offset} ${lidar_y_offset} ${lidar_z_offset}" rpy="0 0 0"/>
+  </joint>
+  
+  <!-- Additional laser frame for compatibility with some ROS packages -->
+  <link name="laser">
+    <inertial>
+      <mass value="0.001"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+  
+  <joint name="lidar_to_laser" type="fixed">
+    <parent link="lidar_link"/>
+    <child link="laser"/>
+    <!-- Some packages expect 'laser' frame -->
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  
+  <!-- =====================================================
+       CAMERAS (Microsoft LifeCam Studio) - VERIFIED
+       Mounted at top of camera pole
+       Frame matches camera_bridge.py frame_id
+       ===================================================== -->
+  
+  <!-- Camera mounting platform (at top of pole) -->
+  <link name="camera_mount">
+    <visual>
+      <geometry>
+        <box size="0.15 0.10 0.03"/>  <!-- Platform for camera mounting -->
+      </geometry>
+      <material name="metal_gray"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.15 0.10 0.03"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>  <!-- ~500g for mount + cameras -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+  
+  <joint name="pole_to_camera_mount" type="fixed">
+    <parent link="camera_pole"/>
+    <child link="camera_mount"/>
+    <!-- Mounted at very top of pole -->
+    <origin xyz="0 0 ${pole_height}" rpy="0 0 0"/>
+  </joint>
+  
+  <!-- Main Camera Link (for camera_bridge.py) -->
+  <link name="camera_link">
+    <visual>
+      <geometry>
+        <box size="0.05 0.03 0.03"/>  <!-- Microsoft LifeCam Studio size -->
+      </geometry>
+      <material name="black_rubber"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.05 0.03 0.03"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.2"/>  <!-- ~200g per camera -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+  
+  <joint name="mount_to_camera_link" type="fixed">
+    <parent link="camera_mount"/>
+    <child link="camera_link"/>
+    <!-- Center of mount, primary camera frame -->
+    <origin xyz="0 0 0.02" rpy="0 0 0"/>
+  </joint>
+  
+  <!-- Front-facing Camera -->
+  <link name="camera_front_link">
+    <visual>
+      <geometry>
+        <box size="0.05 0.03 0.03"/>  <!-- Microsoft LifeCam Studio size -->
+      </geometry>
+      <material name="black_rubber"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.05 0.03 0.03"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.2"/>  <!-- ~200g per camera -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+  
+  <joint name="mount_to_camera_front" type="fixed">
+    <parent link="camera_mount"/>
+    <child link="camera_front_link"/>
+    <!-- Front edge of mount, facing forward -->
+    <origin xyz="0.075 0 0.02" rpy="0 0 0"/>
+  </joint>
+  
+  <!-- Back-facing Camera -->
+  <link name="camera_back_link">
+    <visual>
+      <geometry>
+        <box size="0.05 0.03 0.03"/>
+      </geometry>
+      <material name="black_rubber"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.05 0.03 0.03"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.2"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+  
+  <joint name="mount_to_camera_back" type="fixed">
+    <parent link="camera_mount"/>
+    <child link="camera_back_link"/>
+    <!-- Back edge of mount, facing backward (180° rotation) -->
+    <origin xyz="-0.075 0 0.02" rpy="0 0 ${pi}"/>
+  </joint>
+  
+  <!-- =====================================================
+       ROBOT FOOTPRINT FOR NAVIGATION - CORRECTED
+       This matches your corrected robot_params.yaml
+       ===================================================== -->
+  
+  <!-- 
+#actual footprint:
+# footprint: [
+#   [-0.17, -0.23],   # Back left
+#   [-0.17,  0.20],   # Back right  
+#   [ 0.18,  0.20],   # Front right
+#   [ 0.18, -0.23]    # Front left
+# ] 
+footprint: [
+  [-0.20, -0.26],   # Back left
+  [-0.20,  0.23],   # Back right  
+  [ 0.21,  0.23],   # Front right
+  [ 0.21, -0.26]    # Front left
+]
+  -->
+
+</robot>
